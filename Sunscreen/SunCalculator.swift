@@ -20,28 +20,28 @@ import Foundation
 class SunCalculator {
     static let J1970 = Double(2440588),
     J2000 = Double(2451545),
-    deg2rad = M_PI / 180,
-    rad2deg = 180 / M_PI,
-    M0 = 357.5291 * deg2rad,
-    M1 = 0.98560028 * deg2rad,
+    deg2rad = Double.pi / 180,
+    rad2deg = 180 / Double.pi,
+    M0 = 357.5291 * (Double.pi / 180),
+    M1 = 0.98560028 * (Double.pi / 180),
     J0 = 0.0009,
     J1 = 0.0053,
     J2 = -0.0069,
-    C1 = 1.9148 * deg2rad,
-    C2 = 0.0200 * deg2rad,
-    C3 = 0.0003 * deg2rad,
-    P = 102.9372 * deg2rad,
-    e = 23.45 * deg2rad,
-    th0 = 280.1600 * deg2rad,
-    th1 = 360.9856235 * deg2rad,
-    h0 = -0.83 * deg2rad, // Angle of sunset
-    d0 = 0.53 * deg2rad,  // Diameter of the sun
-    h1 = -6 * deg2rad,    // Angle of Civil Twilight
-    h2 = -12 * deg2rad,   // Angle of Nautical Twilight
-    h3 = -18 * deg2rad,   // Angle of Astronomical Twilight
+    C1 = 1.9148 * (Double.pi / 180),
+    C2 = 0.0200 * (Double.pi / 180),
+    C3 = 0.0003 * (Double.pi / 180),
+    P = 102.9372 * (Double.pi / 180),
+    e = 23.45 * (Double.pi / 180),
+    th0 = 280.1600 * (Double.pi / 180),
+    th1 = 360.9856235 * (Double.pi / 180),
+    h0 = -0.83 * (Double.pi / 180), // Angle of sunset
+    d0 = 0.53 * (Double.pi / 180),  // Diameter of the sun
+    h1 = -6 * (Double.pi / 180),    // Angle of Civil Twilight
+    h2 = -12 * (Double.pi / 180),   // Angle of Nautical Twilight
+    h3 = -18 * (Double.pi / 180),   // Angle of Astronomical Twilight
     secondsInDay = Double(60 * 60 * 24)
 
-    static func calculateTimes(date: NSDate, latitude: Double, longitude: Double) -> SunData {
+    static func calculateTimes(_ date: Date, latitude: Double, longitude: Double) -> SunData {
         let now = date.timeIntervalSince1970,
         lw = -longitude * deg2rad,
         phi = latitude * deg2rad,
@@ -78,29 +78,29 @@ class SunCalculator {
             period = "night"
         } else {
             switch date.compare(solarNoon!) {
-            case .OrderedAscending, .OrderedSame:
+            case .orderedAscending, .orderedSame:
                 // We're before solar noon, so it's either sunrise or morning. If "sunriseEnd" is nil,
                 // we can return "sunrise". If it's not, we need to compare ourselves to sunriseEnd to
                 // see if we're in "sunrise" or "morning".
                 if sunriseEnd != nil {
                     switch date.compare(sunriseEnd!) {
-                    case .OrderedSame, .OrderedAscending:
+                    case .orderedSame, .orderedAscending:
                         period = "sunrise"
-                    case .OrderedDescending:
+                    case .orderedDescending:
                         period = "morning"
                     }
                 } else {
                     period = "sunrise"
                 }
-            case .OrderedDescending:
+            case .orderedDescending:
                 // We're after solar noon, so it's either afternoon or sunset. If "sunsetStart" is nil,
                 // we can return "sunset". If it's not, we need to compare ourselves to sunsetStart to
                 // see if we're in "afternoon" or "sunset".
                 if sunsetStart != nil {
                     switch date.compare(sunsetStart!) {
-                    case .OrderedAscending, .OrderedSame:
+                    case .orderedAscending, .orderedSame:
                         period = "afternoon"
-                    case .OrderedDescending:
+                    case .orderedDescending:
                         period = "sunset"
                     }
                 } else {
@@ -119,7 +119,7 @@ class SunCalculator {
         )
     }
 
-    private static func altitudeOfSunAtTime(date: NSDate, latitude: Double, longitude: Double) -> Double {
+    private static func altitudeOfSunAtTime(_ date: Date, latitude: Double, longitude: Double) -> Double {
         let J = dateToJulianDate(date.timeIntervalSince1970),
         M = getSolarMeanAnomaly(J),
         C = getEquationOfCenter(M),
@@ -133,75 +133,75 @@ class SunCalculator {
         return getAltitude(th, a: a, phi: phi, d: d) * rad2deg
     }
 
-    private static func dateToJulianDate(date: Double) -> Double {
+    private static func dateToJulianDate(_ date: Double) -> Double {
         return (date / secondsInDay) - 0.5 + J1970
     }
 
-    private static func julianDateToDate(julianDate: Double) -> NSDate? {
+    private static func julianDateToDate(_ julianDate: Double) -> Date? {
         if julianDate.isNaN {
             return nil
         } else {
-            return NSDate(timeIntervalSince1970: (julianDate + 0.5 - J1970) * secondsInDay)
+            return Date(timeIntervalSince1970: (julianDate + 0.5 - J1970) * secondsInDay)
         }
     }
 
-    private static func getJulianCycle(J: Double, lw: Double) -> Double {
-        return round(J - J2000 - J0 - lw / (2 * M_PI))
+    private static func getJulianCycle(_ J: Double, lw: Double) -> Double {
+        return round(J - J2000 - J0 - lw / (2 * Double.pi))
     }
 
-    private static func getApproxSolarTransit(Ht: Double, lw: Double, n: Double) -> Double {
-        return J2000 + J0 + (Ht + lw) / (2 * M_PI) + n
+    private static func getApproxSolarTransit(_ Ht: Double, lw: Double, n: Double) -> Double {
+        return J2000 + J0 + (Ht + lw) / (2 * Double.pi) + n
     }
 
-    private static func getSolarMeanAnomaly(Js: Double) -> Double {
+    private static func getSolarMeanAnomaly(_ Js: Double) -> Double {
         return M0 + M1 * (Js - J2000)
     }
 
-    private static func getEquationOfCenter(M: Double) -> Double {
+    private static func getEquationOfCenter(_ M: Double) -> Double {
         return C1 * sin(M) + C2 * sin(2 * M) + C3 * sin(3 * M)
     }
 
-    private static func getEclipticLongitude(M: Double, C: Double) -> Double {
-        return M + P + C + M_PI
+    private static func getEclipticLongitude(_ M: Double, C: Double) -> Double {
+        return M + P + C + Double.pi
     }
 
-    private static func getSolarTransit(Js: Double, M: Double, Lsun: Double) -> Double {
+    private static func getSolarTransit(_ Js: Double, M: Double, Lsun: Double) -> Double {
         return Js + (J1 * sin(M)) + (J2 * sin(2 * Lsun))
     }
 
-    private static func getSunDeclination(Lsun: Double) -> Double {
+    private static func getSunDeclination(_ Lsun: Double) -> Double {
         return asin(sin(Lsun) * sin(e))
     }
 
-    private static func getRightAscension(Lsun: Double) -> Double {
+    private static func getRightAscension(_ Lsun: Double) -> Double {
         return atan2(sin(Lsun) * cos(e), cos(Lsun))
     }
 
-    private static func getSiderealTime(J: Double, lw: Double) -> Double {
+    private static func getSiderealTime(_ J: Double, lw: Double) -> Double {
         return th0 + th1 * (J - J2000) - lw
     }
 
-    private static func getAzimuth(th: Double, a: Double, phi: Double, d: Double) -> Double {
+    private static func getAzimuth(_ th: Double, a: Double, phi: Double, d: Double) -> Double {
         let H = th - a
 
         return atan2(sin(H), cos(H) * sin(phi) - tan(d) * cos(phi))
     }
 
-    private static func getAltitude(th: Double, a: Double, phi: Double, d: Double) -> Double {
+    private static func getAltitude(_ th: Double, a: Double, phi: Double, d: Double) -> Double {
         let H = th - a
 
         return asin(sin(phi) * sin(d) + cos(phi) * cos(d) * cos(H))
     }
 
-    private static func getHourAngle(h: Double, phi: Double, d: Double) -> Double {
+    private static func getHourAngle(_ h: Double, phi: Double, d: Double) -> Double {
         return acos((sin(h) - sin(phi) * sin(d)) / (cos(phi) * cos(d)))
     }
 
-    private static func getSunsetJulianDate(w0: Double, M: Double, Lsun: Double, lw: Double, n: Double) -> Double {
+    private static func getSunsetJulianDate(_ w0: Double, M: Double, Lsun: Double, lw: Double, n: Double) -> Double {
         return getSolarTransit(getApproxSolarTransit(w0, lw: lw, n: n), M: M, Lsun: Lsun);
     }
 
-    private static func getSunriseJulianDate(Jtransit: Double, Jset: Double) -> Double {
+    private static func getSunriseJulianDate(_ Jtransit: Double, Jset: Double) -> Double {
         return Jtransit - (Jset - Jtransit);
     }
 }
@@ -209,11 +209,11 @@ class SunCalculator {
 struct SunData {
     var currentPeriod: String
 
-    var sunriseStart: NSDate?
-    // var sunriseStart: NSDate?
-    var sunriseEnd: NSDate?
-    var solarNoon: NSDate
-    var sunsetStart: NSDate?
-    // var sunsetEnd: NSDate?
-    var sunsetEnd: NSDate?
+    var sunriseStart: Date?
+    // var sunriseStart: Date?
+    var sunriseEnd: Date?
+    var solarNoon: Date
+    var sunsetStart: Date?
+    // var sunsetEnd: Date?
+    var sunsetEnd: Date?
 }

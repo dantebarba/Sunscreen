@@ -17,27 +17,27 @@ class StatusMenuController: NSObject, CLLocationManagerDelegate {
     var preferencesWindow: PreferencesWindow!
 
     var currentLocation: CLLocation?
-    var timer: NSTimer?
+    var timer: Timer?
 
-    let statusItem = NSStatusBar.systemStatusBar().statusItemWithLength(NSVariableStatusItemLength)
+    let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     let locationManager = CLLocationManager()
 
     override func awakeFromNib() {
         let icon = NSImage(named: "StatusIcon")
-        icon?.template = true // Dark mode support
+        icon?.isTemplate = true // Dark mode support
 
-        statusItem.image = icon
+        statusItem.button?.image = icon
         statusItem.menu = statusMenu
 
         preferencesWindow = PreferencesWindow()
 
         locationManager.delegate = self
 
-        switch CLLocationManager.authorizationStatus() {
-        case .Denied:
-            showLocationServicesErrorForStatus(CLAuthorizationStatus.Denied)
-        case .Restricted:
-            showLocationServicesErrorForStatus(CLAuthorizationStatus.Restricted)
+        switch locationManager.authorizationStatus {
+        case .denied:
+            showLocationServicesErrorForStatus(.denied)
+        case .restricted:
+            showLocationServicesErrorForStatus(.restricted)
         default:
             break
         }
@@ -48,68 +48,67 @@ class StatusMenuController: NSObject, CLLocationManagerDelegate {
         locationManager.startMonitoringSignificantLocationChanges()
     }
 
-    @IBAction func preferencesClicked(sender: NSMenuItem) {
+    @IBAction func preferencesClicked(_ sender: NSMenuItem) {
         showPreferences()
     }
 
-    @IBAction func quitClicked(sender: NSMenuItem) {
-        NSApplication.sharedApplication().terminate(self)
+    @IBAction func quitClicked(_ sender: NSMenuItem) {
+        NSApplication.shared.terminate(self)
     }
 
-    func locationManager(manager: CLLocationManager, didUpdateLocations locations: [AnyObject]) {
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         locationManager.stopUpdatingLocation()
 
-        currentLocation = locations.last as? CLLocation
+        currentLocation = locations.last
 
         if timer == nil {
-            timer = NSTimer(fireDate: NSDate(), interval: 60, target: self, selector: Selector("updateWallpaper"), userInfo: nil, repeats: true)
-            NSRunLoop.mainRunLoop().addTimer(timer!, forMode: NSRunLoopCommonModes)
+            timer = Timer(fireAt: Date(), interval: 60, target: self, selector: #selector(updateWallpaper), userInfo: nil, repeats: true)
+            RunLoop.main.add(timer!, forMode: .common)
 
-            let workspace = NSWorkspace.sharedWorkspace()
-            workspace.notificationCenter.addObserver(self, selector: "updateWallpaper", name: NSWorkspaceActiveSpaceDidChangeNotification, object: workspace)
+            let workspace = NSWorkspace.shared
+            workspace.notificationCenter.addObserver(self, selector: #selector(updateWallpaper), name: NSWorkspace.activeSpaceDidChangeNotification, object: workspace)
         }
     }
 
-    func locationManager(manager: CLLocationManager, didFailWithError error: NSError) {
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         locationManager.stopUpdatingLocation()
 
         let alert = NSAlert()
 
         alert.messageText = "Location Unavailable"
         alert.informativeText = "Sunscreen requires your current location to calculate sunrise and sunset times, but we weren't able to get your location. Sorry about that!"
-        alert.addButtonWithTitle("OK")
+        alert.addButton(withTitle: "OK")
 
         alert.runModal()
     }
 
-    func locationManager(manager: CLLocationManager, didChangeAuthorizationStatus status: CLAuthorizationStatus) {
-        switch status {
-        case .Restricted, .Denied:
-            showLocationServicesErrorForStatus(status)
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        switch manager.authorizationStatus {
+        case .restricted, .denied:
+            showLocationServicesErrorForStatus(manager.authorizationStatus)
         default:
             return
         }
     }
 
-    func updateWallpaper() {
-        let times = SunCalculator.calculateTimes(NSDate(), latitude: currentLocation!.coordinate.latitude, longitude: currentLocation!.coordinate.longitude)
+    @objc func updateWallpaper() {
+        guard let location = currentLocation else { return }
+        let times = SunCalculator.calculateTimes(Date(), latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
 
         setWallpaper(times.currentPeriod)
     }
 
-    private func setWallpaper(period: String) {
-        let defaults = NSUserDefaults.standardUserDefaults()
+    private func setWallpaper(_ period: String) {
+        let defaults = UserDefaults.standard
 
-        if let path = defaults.valueForKey("\(period)Wallpaper") {
-            let url = NSURL.fileURLWithPath(path as! String)
+        if let path = defaults.value(forKey: "\(period)Wallpaper") as? String {
+            let url = URL(fileURLWithPath: path)
 
             do {
-                let workspace = NSWorkspace.sharedWorkspace()
+                let workspace = NSWorkspace.shared
 
-                if let screens = NSScreen.screens() {
-                    for screen in screens {
-                        try workspace.setDesktopImageURL(url, forScreen: screen, options: workspace.desktopImageOptionsForScreen(screen)!)
-                    }
+                for screen in NSScreen.screens {
+                    try workspace.setDesktopImageURL(url, for: screen, options: workspace.desktopImageOptions(for: screen) ?? [:])
                 }
             } catch {
                 NSLog("\(error)")
@@ -122,25 +121,25 @@ class StatusMenuController: NSObject, CLLocationManagerDelegate {
 
         preferencesWindow.window?.center()
         preferencesWindow.window?.makeKeyAndOrderFront(nil)
-        NSApp.activateIgnoringOtherApps(true)
+        NSApp.activate(ignoringOtherApps: true)
     }
 
-    private func showLocationServicesErrorForStatus(authorizationStatus: CLAuthorizationStatus) {
+    private func showLocationServicesErrorForStatus(_ authorizationStatus: CLAuthorizationStatus) {
         let alert = NSAlert()
 
         switch authorizationStatus {
-        case .Denied:
+        case .denied:
             alert.messageText = "Location Services Access Denied"
             alert.informativeText = "Sunscreen requires your current location to calculate sunrise and sunset times, but you denied access. Please open System Preferences to enable Location Services, and then re-open Sunscreen."
-        case .Restricted:
+        case .restricted:
             alert.messageText = "Location Services Access Restricted"
-            alert.messageText = "Sunscreen requires Location Services access, but your account is restricted. Please contact a system administrator. Sunscreen will now exit."
+            alert.informativeText = "Sunscreen requires Location Services access, but your account is restricted. Please contact a system administrator. Sunscreen will now exit."
         default:
             return
         }
 
-        alert.addButtonWithTitle("OK")
-        if alert.runModal() == NSAlertFirstButtonReturn {
+        alert.addButton(withTitle: "OK")
+        if alert.runModal() == .alertFirstButtonReturn {
             NSApp.terminate(nil)
         }
     }

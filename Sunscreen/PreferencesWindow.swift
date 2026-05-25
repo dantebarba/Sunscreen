@@ -14,7 +14,7 @@ import ServiceManagement
 
 class PreferencesWindow: NSWindowController {
     let wallpapersPath = NSHomeDirectory()
-    let fileManager = NSFileManager.defaultManager()
+    let fileManager = FileManager.default
 
     @IBOutlet weak var sunriseImageView: NSImageView!
     @IBOutlet weak var morningImageView: NSImageView!
@@ -23,20 +23,20 @@ class PreferencesWindow: NSWindowController {
     @IBOutlet weak var nightImageView: NSImageView!
     @IBOutlet weak var startAtLoginButton: NSButton!
 
-    override var windowNibName: String! {
+    override var windowNibName: NSNib.Name {
         return "PreferencesWindow"
     }
 
     override func windowDidLoad() {
         loadExistingWallpapers()
 
-        let defaults = NSUserDefaults.standardUserDefaults()
+        let defaults = UserDefaults.standard
 
-        switch defaults.boolForKey("launchAtLogin") {
+        switch defaults.bool(forKey: "launchAtLogin") {
         case true:
-            startAtLoginButton.state = 1
+            startAtLoginButton.state = .on
         case false:
-            startAtLoginButton.state = 0
+            startAtLoginButton.state = .off
         }
     }
 
@@ -48,75 +48,73 @@ class PreferencesWindow: NSWindowController {
         loadWallpaper("night", imageView: nightImageView)
     }
 
-    @IBAction func sunriseImageDropped(sender: NSImageView) {
+    @IBAction func sunriseImageDropped(_ sender: NSImageView) {
         imageDropped(sender, name: "sunrise")
     }
 
-    @IBAction func morningImageDropped(sender: NSImageView) {
+    @IBAction func morningImageDropped(_ sender: NSImageView) {
         imageDropped(sender, name: "morning")
     }
 
-    @IBAction func afternoonImageDropped(sender: NSImageView) {
+    @IBAction func afternoonImageDropped(_ sender: NSImageView) {
         imageDropped(sender, name: "afternoon")
     }
 
-    @IBAction func sunsetImageDropped(sender: NSImageView) {
+    @IBAction func sunsetImageDropped(_ sender: NSImageView) {
         imageDropped(sender, name: "sunset")
     }
 
-    @IBAction func nightImageDropped(sender: NSImageView) {
+    @IBAction func nightImageDropped(_ sender: NSImageView) {
         imageDropped(sender, name: "night")
     }
 
-    @IBAction func startAtLoginClicked(sender: NSButton) {
-        let identifier = "com.davidcelis.SunscreenLauncher",
-            defaults = NSUserDefaults.standardUserDefaults()
+    @IBAction func startAtLoginClicked(_ sender: NSButton) {
+        let identifier = "com.davidcelis.SunscreenLauncher"
+        let defaults = UserDefaults.standard
 
         switch sender.state {
-        case 1:
-            defaults.setBool(true, forKey: "launchAtLogin")
-            SMLoginItemSetEnabled(identifier, true)
-        case 0:
-            defaults.setBool(false, forKey: "launchAtLogin")
-            SMLoginItemSetEnabled(identifier, false)
+        case .on:
+            defaults.set(true, forKey: "launchAtLogin")
+            SMLoginItemSetEnabled(identifier as CFString, true)
         default:
-            defaults.setBool(false, forKey: "launchAtLogin")
-            SMLoginItemSetEnabled(identifier, false)
+            defaults.set(false, forKey: "launchAtLogin")
+            SMLoginItemSetEnabled(identifier as CFString, false)
         }
     }
 
-    private func imageDropped(sender: NSImageView, name: String) {
-        let manager = NSFileManager.defaultManager(),
-            defaults = NSUserDefaults.standardUserDefaults(),
-            uuid = NSUUID().UUIDString,
-            path = "\(wallpapersPath)/\(uuid).png"
+    private func imageDropped(_ sender: NSImageView, name: String) {
+        let manager = FileManager.default
+        let defaults = UserDefaults.standard
+        let uuid = UUID().uuidString
+        let path = "\(wallpapersPath)/\(uuid).png"
 
         // If there's an old image, delete it
         removeWallpaper(name)
 
         if let image = sender.image {
-            let bmp = NSBitmapImageRep(data: image.TIFFRepresentation!)
-            let png = bmp!.representationUsingType(NSBitmapImageFileType.NSPNGFileType, properties: [:])
-            manager.createFileAtPath(path, contents: png, attributes: nil)
-            defaults.setValue(path, forKey: "\(name)Wallpaper")
+            let bmp = NSBitmapImageRep(data: image.tiffRepresentation!)
+            let png = bmp!.representation(using: .png, properties: [:])
+            manager.createFile(atPath: path, contents: png, attributes: nil)
+            defaults.set(path, forKey: "\(name)Wallpaper")
         }
     }
 
-    private func loadWallpaper(name: String, imageView: NSImageView) {
-        let defaults = NSUserDefaults.standardUserDefaults()
+    private func loadWallpaper(_ name: String, imageView: NSImageView) {
+        let defaults = UserDefaults.standard
 
-        if let path = defaults.valueForKey("\(name)Wallpaper"), image = NSImage(byReferencingFile: path as! String) {
+        if let path = defaults.value(forKey: "\(name)Wallpaper") as? String,
+           let image = NSImage(byReferencingFile: path) {
             imageView.image = image
         }
     }
 
-    private func removeWallpaper(name: String) {
-        let manager = NSFileManager.defaultManager(),
-            defaults = NSUserDefaults.standardUserDefaults()
+    private func removeWallpaper(_ name: String) {
+        let manager = FileManager.default
+        let defaults = UserDefaults.standard
 
-        if let oldImagePath = defaults.valueForKey("\(name)Wallpaper") {
+        if let oldImagePath = defaults.value(forKey: "\(name)Wallpaper") as? String {
             do {
-                try manager.removeItemAtPath(oldImagePath as! String)
+                try manager.removeItem(atPath: oldImagePath)
             } catch {
                 NSLog("\(error)")
             }

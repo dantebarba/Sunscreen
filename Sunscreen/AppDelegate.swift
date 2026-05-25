@@ -14,28 +14,28 @@ import ServiceManagement
 
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
-    func applicationDidFinishLaunching(aNotification: NSNotification) {
+    func applicationDidFinishLaunching(_ aNotification: Notification) {
         let identifier = "com.davidcelis.SunscreenLauncher"
         var startedAtLogin = false
 
-        for app in NSWorkspace.sharedWorkspace().runningApplications {
+        for app in NSWorkspace.shared.runningApplications {
             if app.bundleIdentifier == identifier {
                 startedAtLogin = true
             }
         }
 
         if startedAtLogin {
-            NSDistributedNotificationCenter.defaultCenter().postNotificationName("killme", object: NSBundle.mainBundle().bundleIdentifier!)
+            DistributedNotificationCenter.default().postNotificationName(NSNotification.Name("killme"), object: Bundle.main.bundleIdentifier!)
         }
 
-        let defaults = NSUserDefaults.standardUserDefaults()
+        let defaults = UserDefaults.standard
 
-        if defaults.boolForKey("launchAtLogin") {
-            SMLoginItemSetEnabled(identifier, true)
+        if defaults.bool(forKey: "launchAtLogin") {
+            SMLoginItemSetEnabled(identifier as CFString, true)
         }
     }
 
-    func applicationWillTerminate(aNotification: NSNotification) {
+    func applicationWillTerminate(_ aNotification: Notification) {
         // Insert code here to tear down your application
     }
 }
