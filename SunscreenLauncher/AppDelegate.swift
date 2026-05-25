@@ -14,9 +14,9 @@ import Cocoa
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
 
-    func applicationDidFinishLaunching(aNotification: NSNotification) {
-        let identifier = "com.davidcelis.Sunscreen",
-            running = NSWorkspace.sharedWorkspace().runningApplications
+    func applicationDidFinishLaunching(_ aNotification: Notification) {
+        let identifier = "com.davidcelis.Sunscreen"
+        let running = NSWorkspace.shared.runningApplications
         var alreadyRunning = false
 
         for app in running {
@@ -27,26 +27,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         if !alreadyRunning {
-            NSDistributedNotificationCenter.defaultCenter().addObserver(self, selector: "terminate", name: "killme", object: identifier)
+            DistributedNotificationCenter.default().addObserver(self, selector: #selector(terminate), name: NSNotification.Name("killme"), object: identifier)
 
-            let path = NSBundle.mainBundle().bundlePath as NSString
+            let path = Bundle.main.bundlePath as NSString
             var components = path.pathComponents
 
+            // SunscreenLauncher.app lives at:
+            // Sunscreen.app/Contents/Library/LoginItems/SunscreenLauncher.app
+            // Remove last 4 components to reach Sunscreen.app
             components.removeLast()
             components.removeLast()
             components.removeLast()
-            components.append("MacOS")
-            components.append("Sunscreen")
+            components.removeLast()
 
-            let newPath = NSString.pathWithComponents(components)
+            let appPath = NSString.path(withComponents: components)
+            let appURL = URL(fileURLWithPath: appPath)
 
-            NSWorkspace.sharedWorkspace().launchApplication(newPath)
+            NSWorkspace.shared.openApplication(at: appURL, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
         } else {
             NSApp.terminate(nil)
         }
     }
 
-    func applicationWillTerminate(aNotification: NSNotification) {
+    @objc func terminate() {
+        NSApp.terminate(nil)
+    }
+
+    func applicationWillTerminate(_ aNotification: Notification) {
 
     }
 }
