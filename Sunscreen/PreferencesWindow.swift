@@ -21,6 +21,8 @@ class PreferencesWindow: NSWindowController {
     @IBOutlet weak var afternoonImageView: NSImageView!
     @IBOutlet weak var sunsetImageView: NSImageView!
     @IBOutlet weak var nightImageView: NSImageView!
+    @IBOutlet weak var cloudyImageView: NSImageView!
+    @IBOutlet weak var openWeatherApiKeyField: NSTextField!
     @IBOutlet weak var startAtLoginButton: NSButton!
 
     override var windowNibName: NSNib.Name {
@@ -31,6 +33,10 @@ class PreferencesWindow: NSWindowController {
         loadExistingWallpapers()
 
         let defaults = UserDefaults.standard
+
+        if let apiKey = defaults.string(forKey: "openWeatherApiKey") {
+            openWeatherApiKeyField.stringValue = apiKey
+        }
 
         switch defaults.bool(forKey: "launchAtLogin") {
         case true:
@@ -46,6 +52,7 @@ class PreferencesWindow: NSWindowController {
         loadWallpaper("afternoon", imageView: afternoonImageView)
         loadWallpaper("sunset", imageView: sunsetImageView)
         loadWallpaper("night", imageView: nightImageView)
+        loadWallpaper("cloudy", imageView: cloudyImageView)
     }
 
     @IBAction func sunriseImageDropped(_ sender: NSImageView) {
@@ -68,6 +75,10 @@ class PreferencesWindow: NSWindowController {
         imageDropped(sender, name: "night")
     }
 
+    @IBAction func cloudyImageDropped(_ sender: NSImageView) {
+        imageDropped(sender, name: "cloudy")
+    }
+
     @IBAction func startAtLoginClicked(_ sender: NSButton) {
         let identifier = "com.davidcelis.SunscreenLauncher"
         let defaults = UserDefaults.standard
@@ -80,6 +91,14 @@ class PreferencesWindow: NSWindowController {
             defaults.set(false, forKey: "launchAtLogin")
             SMLoginItemSetEnabled(identifier as CFString, false)
         }
+    }
+
+    @IBAction func openWeatherApiKeyChanged(_ sender: NSTextField) {
+        UserDefaults.standard.set(sender.stringValue, forKey: "openWeatherApiKey")
+    }
+
+    @IBAction func getWeatherApiKeyClicked(_ sender: NSButton) {
+        NSWorkspace.shared.open(URL(string: "https://openweathermap.org/api")!)
     }
 
     private func imageDropped(_ sender: NSImageView, name: String) {

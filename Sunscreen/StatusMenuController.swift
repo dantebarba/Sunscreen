@@ -18,6 +18,10 @@ class StatusMenuController: NSObject, CLLocationManagerDelegate {
 
     var currentLocation: CLLocation?
     var timer: Timer?
+    var weatherTimer: Timer?
+
+    let weatherService = WeatherService()
+    var isCloudy = false
 
     let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     let locationManager = CLLocationManager()
@@ -68,6 +72,8 @@ class StatusMenuController: NSObject, CLLocationManagerDelegate {
             let workspace = NSWorkspace.shared
             workspace.notificationCenter.addObserver(self, selector: #selector(updateWallpaper), name: NSWorkspace.activeSpaceDidChangeNotification, object: workspace)
         }
+
+        startWeatherUpdates()
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
@@ -95,7 +101,18 @@ class StatusMenuController: NSObject, CLLocationManagerDelegate {
         guard let location = currentLocation else { return }
         let times = SunCalculator.calculateTimes(Date(), latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
 
-        setWallpaper(times.currentPeriod)
+        let period = times.currentPeriod
+
+        // For morning and afternoon, prefer the cloudy wallpaper when weather warrants it.
+        if isCloudy && (period == "morning" || period == "afternoon") {
+            let defaults = UserDefaults.standard
+            if defaults.value(forKey: "cloudyWallpaper") != nil {
+                setWallpaper("cloudy")
+                return
+            }
+        }
+
+        setWallpaper(period)
     }
 
     private func setWallpaper(_ period: String) {
@@ -112,6 +129,31 @@ class StatusMenuController: NSObject, CLLocationManagerDelegate {
                 }
             } catch {
                 NSLog("\(error)")
+            }
+        }
+    }
+
+    private func startWeatherUpdates() {
+        guard let location = currentLocation else { return }
+        fetchWeather(location: location)
+        if weatherTimer == nil {
+            weatherTimer = Timer(fireAt: Date().addingTimeInterval(15 * 60), interval: 15 * 60, target: self, selector: #selector(refreshWeather), userInfo: nil, repeats: true)
+            RunLoop.main.add(weatherTimer!, forMode: .common)
+        }
+    }
+
+    @objc private func refreshWeather() {
+        guard let location = currentLocation else { return }
+        fetchWeather(location: location)
+    }
+
+    private func fetchWeather(location: CLLocation) {
+        weatherService.fetchWeather(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude) { [weak self] condition in
+            guard let self = self else { return }
+            let changed = (condition == .cloudy) != self.isCloudy
+            self.isCloudy = (condition == .cloudy)
+            if changed {
+                self.updateWallpaper()
             }
         }
     }
