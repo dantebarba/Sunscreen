@@ -11,10 +11,26 @@
 
 import Cocoa
 import ServiceManagement
+import ImageIO
 
-class PreferencesWindow: NSWindowController {
+/// An image view that records the file URL of the most recently dropped file so the
+/// original wallpaper file can be copied verbatim instead of being re-encoded.
+class WallpaperDropView: NSImageView {
+    private(set) var lastDroppedFileURL: URL?
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        let options: [NSPasteboard.ReadingOptionKey: Any] = [.urlReadingFileURLsOnly: true]
+        let urls = sender.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: options) as? [URL]
+        lastDroppedFileURL = urls?.first
+        return super.performDragOperation(sender)
+    }
+}
+
+class PreferencesWindow: NSWindowController, NSWindowDelegate {
     let wallpapersPath = NSHomeDirectory()
     let fileManager = FileManager.default
+
+    var onClose: (() -> Void)?
 
     @IBOutlet weak var sunriseImageView: NSImageView!
     @IBOutlet weak var morningImageView: NSImageView!
@@ -38,6 +54,10 @@ class PreferencesWindow: NSWindowController {
         case false:
             startAtLoginButton.state = .off
         }
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        onClose?()
     }
 
     func loadExistingWallpapers() {
@@ -83,29 +103,73 @@ class PreferencesWindow: NSWindowController {
     }
 
     private func imageDropped(_ sender: NSImageView, name: String) {
-        let manager = FileManager.default
         let defaults = UserDefaults.standard
-        let uuid = UUID().uuidString
-        let path = "\(wallpapersPath)/\(uuid).png"
 
-        // If there's an old image, delete it
         removeWallpaper(name)
 
-        if let image = sender.image {
-            let bmp = NSBitmapImageRep(data: image.tiffRepresentation!)
-            let png = bmp!.representation(using: .png, properties: [:])
-            manager.createFile(atPath: path, contents: png, attributes: nil)
+        if let sourceURL = (sender as? WallpaperDropView)?.lastDroppedFileURL {
+            copyDroppedFile(sourceURL, name: name)
+        } else if let png = pngData(from: sender.image) {
+            let path = "\(wallpapersPath)/\(UUID().uuidString).png"
+            fileManager.createFile(atPath: path, contents: png, attributes: nil)
             defaults.set(path, forKey: "\(name)Wallpaper")
         }
+    }
+
+    private func copyDroppedFile(_ sourceURL: URL, name: String) {
+        let ext = sourceURL.pathExtension
+        let filename = ext.isEmpty ? UUID().uuidString : "\(UUID().uuidString).\(ext)"
+        let destination = URL(fileURLWithPath: "\(wallpapersPath)/\(filename)")
+
+        do {
+            try fileManager.copyItem(at: sourceURL, to: destination)
+            UserDefaults.standard.set(destination.path, forKey: "\(name)Wallpaper")
+        } catch {
+            NSLog("\(error)")
+        }
+    }
+
+    private func pngData(from image: NSImage?) -> Data? {
+        guard let tiff = image?.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiff) else {
+            return nil
+        }
+        return bitmap.representation(using: .png, properties: [:])
     }
 
     private func loadWallpaper(_ name: String, imageView: NSImageView) {
         let defaults = UserDefaults.standard
 
-        if let path = defaults.value(forKey: "\(name)Wallpaper") as? String,
-           let image = NSImage(byReferencingFile: path) {
-            imageView.image = image
+        guard let path = defaults.value(forKey: "\(name)Wallpaper") as? String else {
+            return
         }
+
+        let scale = imageView.window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2.0
+        imageView.image = downsampledImage(atPath: path, fittingPointSize: imageView.bounds.size, scale: scale)
+    }
+
+    /// Loads a wallpaper file as a thumbnail sized to the preview's pixel dimensions,
+    /// so a multi-megapixel image never gets decoded at full resolution for a small preview.
+    private func downsampledImage(atPath path: String, fittingPointSize pointSize: NSSize, scale: CGFloat) -> NSImage? {
+        let url = URL(fileURLWithPath: path)
+
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else {
+            return nil
+        }
+
+        let maxPixelSize = Int(max(pointSize.width, pointSize.height) * scale)
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize
+        ]
+
+        guard let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+            return nil
+        }
+
+        let size = NSSize(width: CGFloat(thumbnail.width) / scale, height: CGFloat(thumbnail.height) / scale)
+        return NSImage(cgImage: thumbnail, size: size)
     }
 
     private func removeWallpaper(_ name: String) {

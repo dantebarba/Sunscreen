@@ -36,28 +36,28 @@
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
-                    <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="H4F-VR-y2u">
+                    <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="H4F-VR-y2u" customClass="WallpaperDropView" customModule="Sunscreen" customModuleProvider="target">
                         <rect key="frame" x="17" y="273" width="116" height="71"/>
                         <imageCell key="cell" selectable="YES" editable="YES" alignment="left" imageScaling="proportionallyDown" imageFrameStyle="grayBezel" id="Hyd-4e-A5z"/>
                         <connections>
                             <action selector="sunriseImageDropped:" target="-2" id="6lm-Zm-6j9"/>
                         </connections>
                     </imageView>
-                    <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="G8z-Zc-Fcj">
+                    <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="G8z-Zc-Fcj" customClass="WallpaperDropView" customModule="Sunscreen" customModuleProvider="target">
                         <rect key="frame" x="221" y="273" width="116" height="71"/>
                         <imageCell key="cell" selectable="YES" editable="YES" alignment="left" imageScaling="proportionallyDown" imageFrameStyle="grayBezel" id="8Mg-wY-4yQ"/>
                         <connections>
                             <action selector="morningImageDropped:" target="-2" id="OLR-vh-tQR"/>
                         </connections>
                     </imageView>
-                    <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="rvT-ug-QRH">
+                    <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="rvT-ug-QRH" customClass="WallpaperDropView" customModule="Sunscreen" customModuleProvider="target">
                         <rect key="frame" x="119" y="52" width="116" height="71"/>
                         <imageCell key="cell" selectable="YES" editable="YES" alignment="left" imageScaling="proportionallyDown" imageFrameStyle="grayBezel" id="Iqf-Lk-SrI"/>
                         <connections>
                             <action selector="nightImageDropped:" target="-2" id="pNS-8a-BxB"/>
                         </connections>
                     </imageView>
-                    <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Pz8-5Q-9KG">
+                    <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Pz8-5Q-9KG" customClass="WallpaperDropView" customModule="Sunscreen" customModuleProvider="target">
                         <rect key="frame" x="221" y="165" width="116" height="71"/>
                         <imageCell key="cell" selectable="YES" editable="YES" alignment="left" imageScaling="proportionallyDown" imageFrameStyle="grayBezel" id="aho-fa-vfz"/>
                         <connections>
@@ -106,7 +106,7 @@
                             <action selector="startAtLoginClicked:" target="-2" id="FHa-Eg-ioa"/>
                         </connections>
                     </button>
-                    <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="c0g-HT-JkY">
+                    <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="c0g-HT-JkY" customClass="WallpaperDropView" customModule="Sunscreen" customModuleProvider="target">
                         <rect key="frame" x="17" y="165" width="116" height="71"/>
                         <imageCell key="cell" selectable="YES" editable="YES" alignment="left" imageScaling="proportionallyDown" imageFrameStyle="grayBezel" id="GSA-Ne-Gyk"/>
                         <connections>

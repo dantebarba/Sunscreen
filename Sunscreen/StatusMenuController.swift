@@ -14,7 +14,7 @@ import CoreLocation
 class StatusMenuController: NSObject, CLLocationManagerDelegate {
     @IBOutlet weak var statusMenu: NSMenu!
 
-    var preferencesWindow: PreferencesWindow!
+    var preferencesWindow: PreferencesWindow?
 
     var currentLocation: CLLocation?
     var timer: Timer?
@@ -29,8 +29,6 @@ class StatusMenuController: NSObject, CLLocationManagerDelegate {
         statusItem.button?.image = icon
         statusItem.menu = statusMenu
 
-        preferencesWindow = PreferencesWindow()
-
         locationManager.delegate = self
 
         switch locationManager.authorizationStatus {
@@ -42,7 +40,9 @@ class StatusMenuController: NSObject, CLLocationManagerDelegate {
             break
         }
 
-        showPreferences()
+        if !hasSunPeriodWallpapersConfigured() {
+            showPreferences()
+        }
 
         locationManager.startUpdatingLocation()
         locationManager.startMonitoringSignificantLocationChanges()
@@ -117,11 +117,27 @@ class StatusMenuController: NSObject, CLLocationManagerDelegate {
     }
 
     private func showPreferences() {
-        preferencesWindow.showWindow(nil)
+        let window: PreferencesWindow
+        if let existing = preferencesWindow {
+            window = existing
+        } else {
+            window = PreferencesWindow()
+            window.onClose = { [weak self] in
+                DispatchQueue.main.async { self?.preferencesWindow = nil }
+            }
+            preferencesWindow = window
+        }
 
-        preferencesWindow.window?.center()
-        preferencesWindow.window?.makeKeyAndOrderFront(nil)
+        window.showWindow(nil)
+        window.window?.center()
+        window.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func hasSunPeriodWallpapersConfigured() -> Bool {
+        let defaults = UserDefaults.standard
+        let periods = ["sunrise", "morning", "afternoon", "night"]
+        return periods.contains { defaults.value(forKey: "\($0)Wallpaper") != nil }
     }
 
     private func showLocationServicesErrorForStatus(_ authorizationStatus: CLAuthorizationStatus) {
